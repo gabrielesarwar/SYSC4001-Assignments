@@ -13,6 +13,8 @@
 #define MATRIX_SIZE 5
 #define NUM_SEMAPHORES 3
 
+// Adding something to test github
+
 static int bin_sem[NUM_SEMAPHORES];
 
 // initializes the semaphore
