@@ -10,5 +10,7 @@ For modifying our files we can modify the file using gedit and opening the file 
 adding it the regular way after. 
 Use this website to check how to add to files etc. 
 https://dont-be-afraid-to-commit.readthedocs.io/en/latest/git/commandlinegit.html
+For adding files you will need to seperately add, commit, and push using the linux git commands.
+
 
 
