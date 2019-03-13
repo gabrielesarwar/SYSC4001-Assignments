@@ -11,16 +11,10 @@
 #include <stdbool.h>
 
 #define MICRO_SEC_IN_SEC 1000000
-#define MATRIX_SIZE 5
+#define ARRAY_SIZE 5
 #define NUM_SEMAPHORES 3
 
 static int bin_sem[NUM_SEMAPHORES];
-
-union semun {
-    int val;
-    struct semid_ds *buf;
-    unsigned short *array;
-};
 
 // initializes the semaphore
 static int set_semvalue(int i)
@@ -68,7 +62,7 @@ static int semaphore_v(int i)
 }
 
 bool isSorted(int arr[]) {
-    for(int i = 0; i < MATRIX_SIZE; i++) {
+    for(int i = 0; i < ARRAY_SIZE; i++) {
         if(arr[i] >= arr[i+1]) {
             return true;
         }
@@ -78,104 +72,104 @@ bool isSorted(int arr[]) {
 
 
 int main(){
-
-   bool childDone = false; 
-   bool parentDone = false;  
-   int pid = getpid(); 	// pid for identifying parent or child process
-   int i=0;
-   int exit_code;
-   void *shared_memory = (void *)0;
-   struct shared_matrices *shared_stuff;
-   int shmid;
-   int debug = 0;
-
-   // Initializing Semaphores 
-   for(int k =0; k<NUM_SEMAPHORES; k++){
-      bin_sem[k] = semget((key_t)1234+k, 1, 0666 | IPC_CREAT);
-      if (!set_semvalue(k)) {
-         fprintf(stderr, "Failed to initialize semaphore\n");
-         exit(EXIT_FAILURE);
-      }
+    
+    bool childDone = false;
+    bool parentDone = false;
+    int pid = getpid(); 	// pid for identifying parent or child process
+    int i=0;
+    int exit_code;
+    void *shared_memory = (void *)0;
+    struct shared_array *shared_stuff;
+    int shmid;
+    int debug = 0;
+    
+    // Initializing Semaphores
+    for(int k =0; k<NUM_SEMAPHORES; k++){
+        bin_sem[k] = semget((key_t)1234+k, 1, 0666 | IPC_CREAT);
+        if (!set_semvalue(k)) {
+            fprintf(stderr, "Failed to initialize semaphore\n");
+            exit(EXIT_FAILURE);
+        }
     }
-
-   /* create the shared memory segment */
-   shmid = shmget((key_t)1234, sizeof(struct shared_matrices), 0666 | IPC_CREAT);
-   if (shmid == -1) {
-      fprintf(stderr, "shmget failed\n");
-      exit(EXIT_FAILURE);
-   }
-
-   /* make the shared memory accessible to the program */
-   shared_memory = shmat(shmid, (void *)0, 0);
-   if (shared_memory == (void *)-1) {
-      fprintf(stderr, "shmat failed\n");
-      exit(EXIT_FAILURE);
-   }
-
-   /* assigns the shared_memory segment to shared_stuff */
-   shared_stuff = (struct shared_matrices *)shared_memory;
-
+    
+    /* create the shared memory segment */
+    shmid = shmget((key_t)1234, sizeof(struct shared_array), 0666 | IPC_CREAT);
+    if (shmid == -1) {
+        fprintf(stderr, "shmget failed\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    /* make the shared memory accessible to the program */
+    shared_memory = shmat(shmid, (void *)0, 0);
+    if (shared_memory == (void *)-1) {
+        fprintf(stderr, "shmat failed\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    /* assigns the shared_array segment to shared_stuff */
+    shared_stuff = (struct shared_array *)shared_memory;
+    
     /* user to specify if debug mode or not */
-   char input[20];
-   do{
-      printf("Debug mode? (y/n): ");
-      scanf("%s", input);
-      if(input[0] == 'y'){	// check if input is y (debug mode)
-          debug = 1;
-      }
-   }while(!(input[0] == 'y' || input[0] =='n'));
+    char input[20];
+    do{
+        printf("Debug mode? (y/n): ");
+        scanf("%s", input);
+        if(input[0] == 'y'){	// check if input is y (debug mode)
+            debug = 1;
+        }
+    }while(!(input[0] == 'y' || input[0] =='n'));
     
     /* user to specify if debug mode or not */
     
     printf("Enter 5 distinct integers...\n");
     
-   
-   for(int k=0; k<MATRIX_SIZE; k++){
-     int done = 0;
-      do{
-         char intInput[20];
-         printf("Enter integer : ");
-         scanf("%s", intInput);
-         if(isdigit(intInput[0])){	// check if input an integer
-            shared_stuff->B[k] = intInput[0] - '0';
-            done = 1;
-         }else{
-            printf("Invalid! try again\n");
-         }
-      }while(done == 0);
-   }
     
-   printf("fork program starting\n");
-
-   /* parent process forks 3 child processes */
-   for(int index = 0; index < 3; index ++){
-      if(pid > 0){
-         pid = fork();
-         i++;	// process num
-      }	
-   }
-  
-   /* different tasks depending on if child or parent process */
-   switch(pid)
-   {
-      case -1:
-         perror("fork failed");
-         exit(1);
-      case 0:	// child process
-         while(!(childDone)) {
+    for(int k=0; k<ARRAY_SIZE; k++){
+        int done = 0;
+        do{
+            char intInput[20];
+            printf("Enter integer : ");
+            scanf("%s", intInput);
+            if(isdigit(intInput[0])){	// check if input an integer
+                shared_stuff->B[k] = intInput[0] - '0';
+                done = 1;
+            }else{
+                printf("Invalid! try again\n");
+            }
+        }while(done == 0);
+    }
+    
+    printf("fork program starting\n");
+    
+    /* parent process forks 3 child processes */
+    for(int index = 0; index < 3; index ++){
+        if(pid > 0){
+            pid = fork();
+            i++;	// process num
+        }
+    }
+    
+    /* different tasks depending on if child or parent process */
+    switch(pid)
+    {
+        case -1:
+        perror("fork failed");
+        exit(1);
+        case 0:	// child process
+        while(!(childDone)) {
             if(i == 1){        // process 1
-               if (!semaphore_p(1))exit(EXIT_FAILURE);
-               if(shared_stuff->B[0] < shared_stuff->B[1]){
-                  int temp = shared_stuff->B[0];
-                  shared_stuff->B[0] = shared_stuff->B[1];
-                  shared_stuff->B[1] = temp;
-                  if(debug)printf("Process P1: performed swapping\n");
-               }else{
-                  if(debug)printf("Process P1: No swapping\n");
-               }
-               if(!semaphore_v(1)) exit(EXIT_FAILURE);
-
-           
+                if (!semaphore_p(1))exit(EXIT_FAILURE);
+                if(shared_stuff->B[0] < shared_stuff->B[1]){
+                    int temp = shared_stuff->B[0];
+                    shared_stuff->B[0] = shared_stuff->B[1];
+                    shared_stuff->B[1] = temp;
+                    if(debug)printf("Process P1: performed swapping\n");
+                }else{
+                    if(debug)printf("Process P1: No swapping\n");
+                }
+                if(!semaphore_v(1)) exit(EXIT_FAILURE);
+                
+                
             }else if(i == 2){  // process 2
                 if(!semaphore_p(1)) exit(EXIT_FAILURE);
                 if(!semaphore_p(2)) exit(EXIT_FAILURE);
@@ -203,84 +197,84 @@ int main(){
                 if(!semaphore_v(2)) exit(EXIT_FAILURE);
                 if(!semaphore_v(3)) exit(EXIT_FAILURE);
             }
-
-         if(!semaphore_p(1)) exit(EXIT_FAILURE);
-         if(!semaphore_p(2)) exit(EXIT_FAILURE);
-         if(!semaphore_p(3)) exit(EXIT_FAILURE);
-         if(!(isSorted(shared_stuff->B[])) {
-            childDone = false;
-         } else {
-            childDone = true;
-         }
-         if(!semaphore_v(1)) exit(EXIT_FAILURE);
-         if(!semaphore_v(2)) exit(EXIT_FAILURE);
-         if(!semaphore_v(3)) exit(EXIT_FAILURE);
-         
-         } // end of while 
-
-
-         exit_code = 37;
-         break;
-      default:	// parent process (process 4)
-         while(!(parentDone)) {
+            
+            if(!semaphore_p(1)) exit(EXIT_FAILURE);
+            if(!semaphore_p(2)) exit(EXIT_FAILURE);
+            if(!semaphore_p(3)) exit(EXIT_FAILURE);
+            if(!(isSorted(shared_stuff->B))) {
+                childDone = false;
+            } else {
+                childDone = true;
+            }
+            if(!semaphore_v(1)) exit(EXIT_FAILURE);
+            if(!semaphore_v(2)) exit(EXIT_FAILURE);
+            if(!semaphore_v(3)) exit(EXIT_FAILURE);
+            
+        } // end of while
+        
+        
+        exit_code = 37;
+        break;
+        default:	// parent process (process 4)
+        while(!(parentDone)) {
             if(!semaphore_p(3)) exit(EXIT_FAILURE);
             if(shared_stuff->B[3] < shared_stuff->B[4]){
-               int temp = shared_stuff->B[3];
-               shared_stuff->B[3] = shared_stuff->B[4];
-               shared_stuff->B[4] = temp;
-               if(debug) printf("Process P4: performed swapping\n");
+                int temp = shared_stuff->B[3];
+                shared_stuff->B[3] = shared_stuff->B[4];
+                shared_stuff->B[4] = temp;
+                if(debug) printf("Process P4: performed swapping\n");
             }else{
-               if(debug) printf("Process P4: No swapping\n");
+                if(debug) printf("Process P4: No swapping\n");
             }
             if(!semaphore_v(3)) exit(EXIT_FAILURE);
-
-         if(!semaphore_p(1)) exit(EXIT_FAILURE);
-         if(!semaphore_p(2)) exit(EXIT_FAILURE);
-         if(!semaphore_p(3)) exit(EXIT_FAILURE);
-         if(!(isSorted(shared_stuff->B[])) {
-            parentDone = false;
-         } else {
-            parentDone = true;
-         }
-         if(!semaphore_v(1)) exit(EXIT_FAILURE);
-         if(!semaphore_v(2)) exit(EXIT_FAILURE);
-         if(!semaphore_v(3)) exit(EXIT_FAILURE);
-
-         } // end of while
-         exit_code = 0;
-         break;
-      }
-
-
-   /* parent process waits for computation to finish */
-   if(pid != 0) {
-      int stat_val;
-      pid_t child_pid;
-	
-       for(int k= 0; k<3; k++){
-           child_pid = wait(&stat_val);
-       }
-       
-       printf("Sorted list of integers: ");
-       for(int k = 0; k<MATRIX_SIZE; k++){
-           printf(" %d", shared_stuff->B[k]);
-       }
-       printf("\n");
-       
-       del_semvalue(1);
-       del_semvalue(2);
-       del_semvalue(3);
-            /* shared memory is detached and then deleted */
-      if (shmdt(shared_memory) == -1) {
-         fprintf(stderr, "shmdt failed\n");
-         exit(EXIT_FAILURE);
-      }
-      if (shmctl(shmid, IPC_RMID, 0) == -1) {
-         fprintf(stderr, "shmctl(IPC_RMID) failed\n");
-         exit(EXIT_FAILURE);
-      }
-   }
-   
-   exit(exit_code);
-	
+            
+            if(!semaphore_p(1)) exit(EXIT_FAILURE);
+            if(!semaphore_p(2)) exit(EXIT_FAILURE);
+            if(!semaphore_p(3)) exit(EXIT_FAILURE);
+            if(!(isSorted(shared_stuff->B))) {
+                parentDone = false;
+            } else {
+                parentDone = true;
+            }
+            if(!semaphore_v(1)) exit(EXIT_FAILURE);
+            if(!semaphore_v(2)) exit(EXIT_FAILURE);
+            if(!semaphore_v(3)) exit(EXIT_FAILURE);
+            
+        } // end of while
+        exit_code = 0;
+        break;
+    }
+    
+    
+    /* parent process waits for computation to finish */
+    if(pid != 0) {
+        int stat_val;
+        pid_t child_pid;
+        
+        for(int k= 0; k<3; k++){
+            child_pid = wait(&stat_val);
+        }
+        
+        printf("Sorted list of integers: ");
+        for(int k = 0; k<ARRAY_SIZE; k++){
+            printf(" %d", shared_stuff->B[k]);
+        }
+        printf("\n");
+        
+        del_semvalue(1);
+        del_semvalue(2);
+        del_semvalue(3);
+        /* shared memory is detached and then deleted */
+        if (shmdt(shared_memory) == -1) {
+            fprintf(stderr, "shmdt failed\n");
+            exit(EXIT_FAILURE);
+        }
+        if (shmctl(shmid, IPC_RMID, 0) == -1) {
+            fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    
+    exit(exit_code);
+    
 }

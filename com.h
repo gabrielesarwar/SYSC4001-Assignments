@@ -1,6 +1,6 @@
-#define MATRIX_SIZE 5
+#define ARRAY_SIZE 5
 
-struct shared_matrices {
-    int B[MATRIX_SIZE];
+struct shared_array {
+    int B[ARRAY_SIZE];
 };
 
