@@ -8,14 +8,19 @@
 #include <sys/time.h>
 #include <ctype.h>
 #include <sys/sem.h>
+#include <stdbool.h>
 
 #define MICRO_SEC_IN_SEC 1000000
 #define MATRIX_SIZE 5
 #define NUM_SEMAPHORES 3
 
-// Adding something to test github
-
 static int bin_sem[NUM_SEMAPHORES];
+
+union semun {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};
 
 // initializes the semaphore
 static int set_semvalue(int i)
@@ -62,9 +67,20 @@ static int semaphore_v(int i)
     return(1);
 }
 
+bool isSorted(int arr[]) {
+    for(int i = 0; i < MATRIX_SIZE; i++) {
+        if(arr[i] >= arr[i+1]) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 int main(){
-   
+
+   bool childDone = false; 
+   bool parentDone = false;  
    int pid = getpid(); 	// pid for identifying parent or child process
    int i=0;
    int exit_code;
@@ -72,7 +88,8 @@ int main(){
    struct shared_matrices *shared_stuff;
    int shmid;
    int debug = 0;
-    
+
+   // Initializing Semaphores 
    for(int k =0; k<NUM_SEMAPHORES; k++){
       bin_sem[k] = semget((key_t)1234+k, 1, 0666 | IPC_CREAT);
       if (!set_semvalue(k)) {
@@ -145,59 +162,91 @@ int main(){
          perror("fork failed");
          exit(1);
       case 0:	// child process
-         if(i == 1){        // process 1
-            if (!semaphore_p(1))exit(EXIT_FAILURE);
-            if(shared_stuff->B[0] < shared_stuff->B[1]){
-               int temp = shared_stuff->B[0];
-                shared_stuff->B[0] = shared_stuff->B[1];
-                shared_stuff->B[1] = temp;
-                if(debug)printf("Process P1: performed swapping\n");
-            }else{
-                if(debug)printf("Process P1: No swapping\n");
-            }
-             if(!semaphore_v(1)) exit(EXIT_FAILURE);
+         while(!(childDone)) {
+            if(i == 1){        // process 1
+               if (!semaphore_p(1))exit(EXIT_FAILURE);
+               if(shared_stuff->B[0] < shared_stuff->B[1]){
+                  int temp = shared_stuff->B[0];
+                  shared_stuff->B[0] = shared_stuff->B[1];
+                  shared_stuff->B[1] = temp;
+                  if(debug)printf("Process P1: performed swapping\n");
+               }else{
+                  if(debug)printf("Process P1: No swapping\n");
+               }
+               if(!semaphore_v(1)) exit(EXIT_FAILURE);
 
            
-         }else if(i == 2){  // process 2
-             if(!semaphore_p(1)) exit(EXIT_FAILURE);
-             if(!semaphore_p(2)) exit(EXIT_FAILURE);
-             if(shared_stuff->B[1] < shared_stuff->B[2]){
-                 int temp = shared_stuff->B[1];
-                 shared_stuff->B[1] = shared_stuff->B[2];
-                 shared_stuff->B[2] = temp;
-                 if(debug)printf("Process P2: performed swapping\n");
-             }else{
-                 if(debug)printf("Process P2: No swapping\n");
-             }
-             if(!semaphore_v(1)) exit(EXIT_FAILURE);
-             if(!semaphore_v(2)) exit(EXIT_FAILURE);
-         }else if(i == 3){  // process 3
-             if(!semaphore_p(2)) exit(EXIT_FAILURE);
-             if(!semaphore_p(3)) exit(EXIT_FAILURE);
-             if(shared_stuff->B[2] < shared_stuff->B[3]){
-                 int temp = shared_stuff->B[2];
-                 shared_stuff->B[2] = shared_stuff->B[3];
-                 shared_stuff->B[3] = temp;
-                 if(debug)printf("Process P3: performed swapping\n");
-             }else{
-                 if(debug)printf("Process P3: No swapping\n");
-             }
-             if(!semaphore_v(2)) exit(EXIT_FAILURE);
-             if(!semaphore_v(3)) exit(EXIT_FAILURE);
+            }else if(i == 2){  // process 2
+                if(!semaphore_p(1)) exit(EXIT_FAILURE);
+                if(!semaphore_p(2)) exit(EXIT_FAILURE);
+                if(shared_stuff->B[1] < shared_stuff->B[2]){
+                    int temp = shared_stuff->B[1];
+                    shared_stuff->B[1] = shared_stuff->B[2];
+                    shared_stuff->B[2] = temp;
+                    if(debug)printf("Process P2: performed swapping\n");
+                }else{
+                    if(debug)printf("Process P2: No swapping\n");
+                }
+                if(!semaphore_v(1)) exit(EXIT_FAILURE);
+                if(!semaphore_v(2)) exit(EXIT_FAILURE);
+            }else if(i == 3){  // process 3
+                if(!semaphore_p(2)) exit(EXIT_FAILURE);
+                if(!semaphore_p(3)) exit(EXIT_FAILURE);
+                if(shared_stuff->B[2] < shared_stuff->B[3]){
+                    int temp = shared_stuff->B[2];
+                    shared_stuff->B[2] = shared_stuff->B[3];
+                    shared_stuff->B[3] = temp;
+                    if(debug)printf("Process P3: performed swapping\n");
+                }else{
+                    if(debug)printf("Process P3: No swapping\n");
+                }
+                if(!semaphore_v(2)) exit(EXIT_FAILURE);
+                if(!semaphore_v(3)) exit(EXIT_FAILURE);
+            }
+
+         if(!semaphore_p(1)) exit(EXIT_FAILURE);
+         if(!semaphore_p(2)) exit(EXIT_FAILURE);
+         if(!semaphore_p(3)) exit(EXIT_FAILURE);
+         if(!(isSorted(shared_stuff->B[])) {
+            childDone = false;
+         } else {
+            childDone = true;
          }
+         if(!semaphore_v(1)) exit(EXIT_FAILURE);
+         if(!semaphore_v(2)) exit(EXIT_FAILURE);
+         if(!semaphore_v(3)) exit(EXIT_FAILURE);
+         
+         } // end of while 
+
+
          exit_code = 37;
          break;
       default:	// parent process (process 4)
-       if(!semaphore_p(3)) exit(EXIT_FAILURE);
-        if(shared_stuff->B[3] < shared_stuff->B[4]){
-           int temp = shared_stuff->B[3];
-           shared_stuff->B[3] = shared_stuff->B[4];
-            shared_stuff->B[4] = temp;
-            if(debug) printf("Process P4: performed swapping\n");
-        }else{
-            if(debug) printf("Process P4: No swapping\n");
-        }
-       if(!semaphore_v(3)) exit(EXIT_FAILURE);
+         while(!(parentDone)) {
+            if(!semaphore_p(3)) exit(EXIT_FAILURE);
+            if(shared_stuff->B[3] < shared_stuff->B[4]){
+               int temp = shared_stuff->B[3];
+               shared_stuff->B[3] = shared_stuff->B[4];
+               shared_stuff->B[4] = temp;
+               if(debug) printf("Process P4: performed swapping\n");
+            }else{
+               if(debug) printf("Process P4: No swapping\n");
+            }
+            if(!semaphore_v(3)) exit(EXIT_FAILURE);
+
+         if(!semaphore_p(1)) exit(EXIT_FAILURE);
+         if(!semaphore_p(2)) exit(EXIT_FAILURE);
+         if(!semaphore_p(3)) exit(EXIT_FAILURE);
+         if(!(isSorted(shared_stuff->B[])) {
+            parentDone = false;
+         } else {
+            parentDone = true;
+         }
+         if(!semaphore_v(1)) exit(EXIT_FAILURE);
+         if(!semaphore_v(2)) exit(EXIT_FAILURE);
+         if(!semaphore_v(3)) exit(EXIT_FAILURE);
+
+         } // end of while
          exit_code = 0;
          break;
       }
