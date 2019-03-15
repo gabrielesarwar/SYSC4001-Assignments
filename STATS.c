@@ -111,27 +111,44 @@ int main(){
     
     /* user to specify if debug mode or not */
     char input[20];
+    bool invalid = 0;
     do{
+        invalid = 0;
         printf("Debug mode? (y/n): ");
         scanf("%s", input);
-        if(input[0] == 'y'){	// check if input is y (debug mode)
+        if(input[1] != '\0'){
+            invalid = 1;
+            printf("Invalid! try again\n");
+        }
+        else if(input[0] == 'y'){	// check if input is y (debug mode)
             debug = 1;
         }
-    }while(!(input[0] == 'y' || input[0] =='n'));
+        else if(input[0] == 'n'){	// check if input is y (debug mode)
+            debug = 0;
+        }else{
+            invalid = 1;
+            printf("Invalid! try again\n");
+        }
+    }while(invalid);
     
-    /* user to specify if debug mode or not */
-    
+    /* user to give 5 numbers */
     printf("Enter 5 distinct integers...\n");
-    
     
     for(int k=0; k<ARRAY_SIZE; k++){
         int done = 0;
         do{
+            bool valid = 1;
             char intInput[20];
             printf("Enter integer : ");
             scanf("%s", intInput);
-            if(isdigit(intInput[0])){	// check if input an integer
-                shared_stuff->B[k] = intInput[0] - '0';
+            for(int m = 0;  intInput[m] != '\0'; m++){
+                if(!isdigit(intInput[m])){
+                    valid = 0;
+                    break;
+                }
+            }
+            if(valid){	// check if input an integer
+                shared_stuff->B[k] = atoi(intInput);
                 done = 1;
             }else{
                 printf("Invalid! try again\n");
