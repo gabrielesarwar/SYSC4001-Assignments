@@ -4,3 +4,8 @@ struct shared_array {
     int B[ARRAY_SIZE];
 };
 
+union semun {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};

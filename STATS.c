@@ -277,6 +277,8 @@ int main(){
             printf(" %d", shared_stuff->B[k]);
         }
         printf("\n");
+	printf("The min, max, and median values are: %d %d and %d \n", shared_stuff->B[4],
+		shared_stuff->B[0], shared_stuff->B[2]);
         
         del_semvalue(1);
         del_semvalue(2);
